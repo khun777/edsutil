@@ -15,7 +15,7 @@ public abstract class AbstractPersistable {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	@ModelField(useNull = true)
+	@ModelField(useNull = true, convert = "null")
 	private Long id;
 
 	public Long getId() {
