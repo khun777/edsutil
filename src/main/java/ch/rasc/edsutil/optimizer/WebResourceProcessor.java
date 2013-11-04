@@ -284,8 +284,12 @@ public class WebResourceProcessor {
 
 		Map<String, String> classToFileMap = Maps.newHashMap();
 		Multimap<String, String> resourceRequires = HashMultimap.create();
-
+		Graph g = new Graph();
+		
 		for (String resource : resources) {
+			
+			g.createNode(resource);
+			
 			try (InputStream lis = container.getResourceAsStream(resource)) {
 				String sourcecode = inputStream2String(lis, StandardCharsets.UTF_8);
 
@@ -326,13 +330,13 @@ public class WebResourceProcessor {
 						resourceRequires.put(resource, matcher.group(1));
 					}
 				}
+				
 
 			} catch (IOException ioe) {
 				log.error("web resource processing: " + resource, ioe);
 			}
 		}
-
-		Graph g = new Graph();
+		
 		for (String key : resourceRequires.keySet()) {
 			Node node = g.createNode(key);
 			for (String r : resourceRequires.get(key)) {
