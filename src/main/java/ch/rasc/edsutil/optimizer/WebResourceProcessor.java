@@ -205,7 +205,7 @@ public class WebResourceProcessor {
 								if (jsProcessing) {
 									sourceCodes.get(varName).append(minifyJs(cleanCode(sourcecode))).append('\n');
 								} else {
-									sourceCodes.get(varName).append(compressCss(changeImageUrls(sourcecode, line)));
+									sourceCodes.get(varName).append(compressCss(changeImageUrls(container.getContextPath(), sourcecode, line)));
 								}
 							} catch (IOException ioe) {
 								log.error("web resource processing: " + line, ioe);
@@ -455,11 +455,11 @@ public class WebResourceProcessor {
 		return null;
 	}
 
-	private static String changeImageUrls(String cssSourceCode, String cssPath) {
+	private static String changeImageUrls(String contextPath, String cssSourceCode, String cssPath) {
 		Matcher matcher = CSS_URL_PATTERN.matcher(cssSourceCode);
 		StringBuffer sb = new StringBuffer();
 
-		Path basePath = Paths.get(cssPath);
+		Path basePath = Paths.get(contextPath + cssPath);
 
 		while (matcher.find()) {
 			String url = matcher.group(2);
