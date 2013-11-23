@@ -34,6 +34,7 @@ import org.mozilla.javascript.ErrorReporter;
 import org.mozilla.javascript.EvaluatorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import ch.rasc.edsutil.optimizer.graph.CircularReferenceException;
 import ch.rasc.edsutil.optimizer.graph.Graph;
@@ -95,8 +96,18 @@ public class WebResourceProcessor {
 
 	private boolean jsCompressordisableOptimizations = true;
 
+	private String resourceServletPath = null;
+
 	public WebResourceProcessor(final boolean production) {
 		this.production = production;
+	}
+
+	public void setResourceServletPath(String path) {
+		if (path != null) {
+			this.resourceServletPath = path.trim();
+		} else {
+			this.resourceServletPath = null;
+		}
 	}
 
 	public void setCacheInMonths(int cacheInMonths) {
@@ -214,8 +225,10 @@ public class WebResourceProcessor {
 					String root = key.substring(0, key.length() - JS_EXTENSION.length());
 
 					String crc = computeMD5andEncodeWithURLSafeBase64(content);
-					String servletPath = "/" + root + crc + ".js";
-					container.addServlet(root + crc + "js",
+					String jsFileName = root + crc + ".js";
+					String servletPath = constructServletPath(jsFileName);
+
+					container.addServlet(jsFileName,
 							new ResourceServlet(content, crc, cacheInMonths, "application/javascript")).addMapping(
 							servletPath);
 
@@ -225,9 +238,10 @@ public class WebResourceProcessor {
 				} else if (key.endsWith(CSS_EXTENSION)) {
 					String root = key.substring(0, key.length() - CSS_EXTENSION.length());
 					String crc = computeMD5andEncodeWithURLSafeBase64(content);
-					String servletPath = "/" + root + crc + ".css";
-					container.addServlet(root + crc + "css",
-							new ResourceServlet(content, crc, cacheInMonths, "text/css")).addMapping(servletPath);
+					String cssFileName = root + crc + ".css";
+					String servletPath = constructServletPath(cssFileName);
+					container.addServlet(cssFileName, new ResourceServlet(content, crc, cacheInMonths, "text/css"))
+							.addMapping(servletPath);
 
 					scriptAndLinkTags.get(key).append(
 							String.format(CSSLINK_TAG, container.getContextPath() + servletPath));
@@ -238,6 +252,18 @@ public class WebResourceProcessor {
 		for (Map.Entry<String, StringBuilder> entry : scriptAndLinkTags.entrySet()) {
 			container.setAttribute(entry.getKey(), entry.getValue());
 		}
+
+	}
+
+	private String constructServletPath(String path) {
+		if (StringUtils.hasText(resourceServletPath)) {
+			if (!resourceServletPath.endsWith("/")) {
+				return resourceServletPath + "/" + path;
+			}
+			return resourceServletPath + path;
+		}
+
+		return "/" + path;
 
 	}
 
@@ -285,11 +311,11 @@ public class WebResourceProcessor {
 		Map<String, String> classToFileMap = Maps.newHashMap();
 		Multimap<String, String> resourceRequires = HashMultimap.create();
 		Graph g = new Graph();
-		
+
 		for (String resource : resources) {
-			
+
 			g.createNode(resource);
-			
+
 			try (InputStream lis = container.getResourceAsStream(resource)) {
 				String sourcecode = inputStream2String(lis, StandardCharsets.UTF_8);
 
@@ -330,13 +356,12 @@ public class WebResourceProcessor {
 						resourceRequires.put(resource, matcher.group(1));
 					}
 				}
-				
 
 			} catch (IOException ioe) {
 				log.error("web resource processing: " + resource, ioe);
 			}
 		}
-		
+
 		for (String key : resourceRequires.keySet()) {
 			Node node = g.createNode(key);
 			for (String r : resourceRequires.get(key)) {
@@ -434,7 +459,7 @@ public class WebResourceProcessor {
 		Matcher matcher = CSS_URL_PATTERN.matcher(cssSourceCode);
 		StringBuffer sb = new StringBuffer();
 
-		Path basePath = Paths.get(cssPath.substring(1));
+		Path basePath = Paths.get(cssPath);
 
 		while (matcher.find()) {
 			String url = matcher.group(2);
