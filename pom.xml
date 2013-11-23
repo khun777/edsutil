@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ch.rasc</groupId>
 	<artifactId>edsutil</artifactId>
-	<version>1.0.1</version>
+	<version>1.0.2</version>
 
 	<prerequisites>
 		<maven>3.1.0</maven>
@@ -11,8 +11,8 @@
 
 	<properties>
 	    <eds.version>1.3.8</eds.version>
-	    <hibernate.version>4.3.0.Beta4</hibernate.version>
-		<spring.version>3.2.4.RELEASE</spring.version>
+	    <hibernate.version>4.3.0.CR1</hibernate.version>
+		<spring.version>3.2.5.RELEASE</spring.version>
 		<querydsl.version>3.2.4</querydsl.version>
 	</properties>
 
@@ -97,7 +97,7 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.2.3</version>
+			<version>2.3.0</version>
 			<optional>true</optional>
 		</dependency>
 
