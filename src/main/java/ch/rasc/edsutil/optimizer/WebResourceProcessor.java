@@ -389,7 +389,7 @@ public class WebResourceProcessor {
 			});
 
 		} catch (CircularReferenceException e) {
-			log.error("circula reference", e);
+			log.error("circular reference", e);
 		}
 
 		return resources;
