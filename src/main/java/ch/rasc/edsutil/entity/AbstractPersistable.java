@@ -5,7 +5,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 
-import ch.ralscha.extdirectspring.generator.ModelField;
+import ch.rasc.extclassgenerator.ModelField;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
