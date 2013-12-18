@@ -10,7 +10,7 @@
 	</prerequisites>
 
 	<properties>
-		<hibernate.version>4.3.0.CR2</hibernate.version>
+		<hibernate.version>4.3.0.Final</hibernate.version>
 		<querydsl.version>3.2.4</querydsl.version>
 	</properties>
 
