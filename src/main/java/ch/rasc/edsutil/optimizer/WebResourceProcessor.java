@@ -82,7 +82,7 @@ public class WebResourceProcessor {
 
 	private final boolean production;
 
-	private int cacheInMonths = 12;
+	private int cacheInSeconds = 31536000;
 
 	private int cssLinebreakPos = 120;
 
@@ -110,8 +110,8 @@ public class WebResourceProcessor {
 		}
 	}
 
-	public void setCacheInMonths(int cacheInMonths) {
-		this.cacheInMonths = cacheInMonths;
+	public void setCacheInSeconds(int cacheInSeconds) {
+		this.cacheInSeconds = cacheInSeconds;
 	}
 
 	public void setWebResourcesConfigName(final String webResourcesConfigName) {
@@ -229,7 +229,7 @@ public class WebResourceProcessor {
 					String servletPath = constructServletPath(jsFileName);
 
 					container.addServlet(jsFileName,
-							new ResourceServlet(content, crc, cacheInMonths, "application/javascript")).addMapping(
+							new ResourceServlet(content, crc, cacheInSeconds, "application/javascript")).addMapping(
 							servletPath);
 
 					scriptAndLinkTags.get(key).append(
@@ -240,7 +240,7 @@ public class WebResourceProcessor {
 					String crc = computeMD5andEncodeWithURLSafeBase64(content);
 					String cssFileName = root + crc + ".css";
 					String servletPath = constructServletPath(cssFileName);
-					container.addServlet(cssFileName, new ResourceServlet(content, crc, cacheInMonths, "text/css"))
+					container.addServlet(cssFileName, new ResourceServlet(content, crc, cacheInSeconds, "text/css"))
 							.addMapping(servletPath);
 
 					scriptAndLinkTags.get(key).append(
