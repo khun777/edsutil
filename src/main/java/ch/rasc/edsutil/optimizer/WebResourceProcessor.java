@@ -97,6 +97,8 @@ public class WebResourceProcessor {
 	private boolean jsCompressordisableOptimizations = true;
 
 	private String resourceServletPath = null;
+	
+	private boolean ignoreUses = false;
 
 	public WebResourceProcessor(final boolean production) {
 		this.production = production;
@@ -110,6 +112,10 @@ public class WebResourceProcessor {
 		}
 	}
 
+	public void ignoreUses() {
+		ignoreUses = true;
+	}
+	
 	public void setCacheInSeconds(int cacheInSeconds) {
 		this.cacheInSeconds = cacheInSeconds;
 	}
@@ -194,7 +200,7 @@ public class WebResourceProcessor {
 					List<String> enumeratedResources = enumerateResources(container, line, jsProcessing ? ".js"
 							: ".css");
 					if (jsProcessing) {
-						enumeratedResources = reorder(container, enumeratedResources);
+						enumeratedResources = reorder(container, enumeratedResources, ignoreUses);
 					}
 
 					for (String resource : enumeratedResources) {
@@ -303,7 +309,7 @@ public class WebResourceProcessor {
 
 	private final static Pattern requireUsePattern = Pattern.compile("(?s)['\"](.*?)['\"]");
 
-	private static List<String> reorder(ServletContext container, List<String> resources) {
+	private static List<String> reorder(ServletContext container, List<String> resources, boolean ignoreUses) {
 		if (resources.isEmpty() || resources.size() == 1) {
 			return resources;
 		}
@@ -348,12 +354,14 @@ public class WebResourceProcessor {
 					}
 				}
 
-				matcher = usesPattern.matcher(sourcecode);
-				if (matcher.find()) {
-					String all = matcher.group(1);
-					matcher = requireUsePattern.matcher(all);
-					while (matcher.find()) {
-						resourceRequires.put(resource, matcher.group(1));
+				if (!ignoreUses) {
+					matcher = usesPattern.matcher(sourcecode);
+					if (matcher.find()) {
+						String all = matcher.group(1);
+						matcher = requireUsePattern.matcher(all);
+						while (matcher.find()) {
+							resourceRequires.put(resource, matcher.group(1));
+						}
 					}
 				}
 
