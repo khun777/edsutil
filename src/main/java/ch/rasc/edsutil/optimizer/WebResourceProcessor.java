@@ -264,7 +264,7 @@ public class WebResourceProcessor {
 		}
 
 		for (Map.Entry<String, StringBuilder> entry : scriptAndLinkTags.entrySet()) {
-			container.setAttribute(entry.getKey(), entry.getValue());
+			container.setAttribute(entry.getKey(), entry.getValue().toString());
 		}
 
 	}
