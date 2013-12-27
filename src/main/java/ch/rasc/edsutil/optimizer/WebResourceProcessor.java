@@ -98,8 +98,10 @@ public class WebResourceProcessor {
 
 	private String resourceServletPath = null;
 	
-	private boolean ignoreUses = false;
+	private Set<String> ignoreJsResourceFromReordering = new HashSet<>();
 
+	private final ErrorReporter errorReporter = new JavaScriptCompressorErrorReporter();
+	
 	public WebResourceProcessor(final boolean production) {
 		this.production = production;
 	}
@@ -112,8 +114,8 @@ public class WebResourceProcessor {
 		}
 	}
 
-	public void ignoreUses() {
-		ignoreUses = true;
+	public void ignoreJsResourceFromReordering(String resource) {
+		ignoreJsResourceFromReordering.add(resource);
 	}
 	
 	public void setCacheInSeconds(int cacheInSeconds) {
@@ -200,7 +202,13 @@ public class WebResourceProcessor {
 					List<String> enumeratedResources = enumerateResources(container, line, jsProcessing ? ".js"
 							: ".css");
 					if (jsProcessing) {
-						enumeratedResources = reorder(container, enumeratedResources, ignoreUses);
+						boolean changed = enumeratedResources.removeAll(ignoreJsResourceFromReordering);
+						enumeratedResources = reorder(container, enumeratedResources);
+						
+						if (changed) {
+							enumeratedResources = new ArrayList<>(enumeratedResources);
+							enumeratedResources.addAll(0, ignoreJsResourceFromReordering);
+						}
 					}
 
 					for (String resource : enumeratedResources) {
@@ -309,7 +317,7 @@ public class WebResourceProcessor {
 
 	private final static Pattern requireUsePattern = Pattern.compile("(?s)['\"](.*?)['\"]");
 
-	private static List<String> reorder(ServletContext container, List<String> resources, boolean ignoreUses) {
+	private static List<String> reorder(ServletContext container, List<String> resources) {
 		if (resources.isEmpty() || resources.size() == 1) {
 			return resources;
 		}
@@ -354,17 +362,15 @@ public class WebResourceProcessor {
 					}
 				}
 
-				if (!ignoreUses) {
-					matcher = usesPattern.matcher(sourcecode);
-					if (matcher.find()) {
-						String all = matcher.group(1);
-						matcher = requireUsePattern.matcher(all);
-						while (matcher.find()) {
-							resourceRequires.put(resource, matcher.group(1));
-						}
+				matcher = usesPattern.matcher(sourcecode);
+				if (matcher.find()) {
+					String all = matcher.group(1);
+					matcher = requireUsePattern.matcher(all);
+					while (matcher.find()) {
+						resourceRequires.put(resource, matcher.group(1));
 					}
 				}
-
+			
 			} catch (IOException ioe) {
 				log.error("web resource processing: " + resource, ioe);
 			}
@@ -398,9 +404,8 @@ public class WebResourceProcessor {
 
 		} catch (CircularReferenceException e) {
 			log.error("circular reference", e);
+			return null;
 		}
-
-		return resources;
 
 	}
 
@@ -483,8 +488,6 @@ public class WebResourceProcessor {
 	}
 
 	private String minifyJs(final String jsSourceCode) throws EvaluatorException, IOException {
-		ErrorReporter errorReporter = new JavaScriptCompressorErrorReporter();
-
 		JavaScriptCompressor jsc = new JavaScriptCompressor(new StringReader(jsSourceCode), errorReporter);
 		StringWriter sw = new StringWriter();
 		jsc.compress(sw, jsLinebreakPos, jsCompressorMunge, jsCompressorVerbose, jsCompressorPreserveAllSemiColons,

@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ch.rasc</groupId>
 	<artifactId>edsutil</artifactId>
-	<version>1.0.7</version>
+	<version>1.0.8</version>
 
 	<prerequisites>
 		<maven>3.1.0</maven>
@@ -11,7 +11,7 @@
 
 	<properties>
 		<hibernate.version>4.3.0.Final</hibernate.version>
-		<querydsl.version>3.2.4</querydsl.version>
+		<querydsl.version>3.3.0</querydsl.version>
 	</properties>
 
 	<dependencyManagement>
