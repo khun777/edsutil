@@ -17,7 +17,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +41,7 @@ import ch.rasc.edsutil.optimizer.graph.Node;
 
 import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -97,12 +97,15 @@ public class WebResourceProcessor {
 	private boolean jsCompressordisableOptimizations = true;
 
 	private String resourceServletPath = null;
-	
-	private Set<String> ignoreJsResourceFromReordering = new HashSet<>();
+
+	private final Set<String> ignoreJsResourceFromReordering = new HashSet<>();
 
 	private final ErrorReporter errorReporter = new JavaScriptCompressorErrorReporter();
-	
-	public WebResourceProcessor(final boolean production) {
+
+	private final ServletContext servletContext;
+
+	public WebResourceProcessor(final ServletContext servletContext, final boolean production) {
+		this.servletContext = servletContext;
 		this.production = production;
 	}
 
@@ -117,7 +120,7 @@ public class WebResourceProcessor {
 	public void ignoreJsResourceFromReordering(String resource) {
 		ignoreJsResourceFromReordering.add(resource);
 	}
-	
+
 	public void setCacheInSeconds(int cacheInSeconds) {
 		this.cacheInSeconds = cacheInSeconds;
 	}
@@ -154,16 +157,119 @@ public class WebResourceProcessor {
 		this.jsCompressordisableOptimizations = jsCompressordisableOptimizations;
 	}
 
-	public void process(final ServletContext container) {
+	public void process() {
 
-		Map<String, StringBuilder> scriptAndLinkTags = new HashMap<>();
-		Map<String, StringBuilder> sourceCodes = new HashMap<>();
+		Multimap<String, WebResource> varResources = readVariableResources();
+		Multimap<String, String> linksAndScripts = minify(varResources, true);
+
+		for (String var : linksAndScripts.keySet()) {
+			StringBuilder sb = new StringBuilder();
+			if (var.endsWith(JS_EXTENSION)) {
+				for (String res : linksAndScripts.get(var)) {
+					sb.append(String.format(JAVASCRIPT_TAG, servletContext.getContextPath() + res));
+				}
+			} else {
+				for (String res : linksAndScripts.get(var)) {
+					sb.append(String.format(CSSLINK_TAG, servletContext.getContextPath() + res));
+				}
+			}
+			servletContext.setAttribute(var, sb.toString());
+		}
+
+	}
+
+	public List<String> getJsAndCssResources() {
+		Multimap<String, WebResource> varResources = readVariableResources();
+		Multimap<String, String> linksAndScripts = minify(varResources, false);
+
+		List<String> jsResources = new ArrayList<>();
+		List<String> cssResources = new ArrayList<>();
+
+		for (String var : linksAndScripts.keySet()) {
+			if (var.endsWith(JS_EXTENSION)) {
+				jsResources.addAll(linksAndScripts.get(var));
+			} else {
+				cssResources.addAll(linksAndScripts.get(var));
+
+			}
+		}
+
+		cssResources.addAll(jsResources);
+		return cssResources;
+	}
+
+	private Multimap<String, String> minify(Multimap<String, WebResource> varResources, boolean addServlet) {
+
+		Multimap<String, String> linksAndScripts = LinkedHashMultimap.create();
+
+		for (String var : varResources.keySet()) {
+			StringBuilder minifiedSource = new StringBuilder();
+
+			boolean jsProcessing = var.endsWith(JS_EXTENSION);
+			for (WebResource resource : varResources.get(var)) {
+				if (resource.isMinify()) {
+					try (InputStream lis = servletContext.getResourceAsStream(resource.getPath())) {
+						String sourcecode = inputStream2String(lis, StandardCharsets.UTF_8);
+						if (jsProcessing) {
+							minifiedSource.append(minifyJs(cleanCode(sourcecode))).append('\n');
+						} else {
+							minifiedSource.append(compressCss(changeImageUrls(servletContext.getContextPath(),
+									sourcecode, resource.getPath())));
+						}
+					} catch (IOException ioe) {
+						log.error("web resource processing: " + resource.getPath(), ioe);
+					}
+
+				} else {
+					linksAndScripts.put(var, resource.getPath());
+				}
+			}
+
+			if (minifiedSource.length() > 0) {
+				byte[] content = minifiedSource.toString().getBytes(StandardCharsets.UTF_8);
+
+				if (jsProcessing) {
+					String root = var.substring(0, var.length() - JS_EXTENSION.length());
+
+					String crc = computeMD5andEncodeWithURLSafeBase64(content);
+					String jsFileName = root + crc + ".js";
+					String servletPath = constructServletPath(jsFileName);
+
+					if (addServlet) {
+						servletContext.addServlet(jsFileName,
+								new ResourceServlet(content, crc, cacheInSeconds, "application/javascript"))
+								.addMapping(servletPath);
+					}
+
+					linksAndScripts.put(var, servletPath);
+
+				} else {
+					String root = var.substring(0, var.length() - CSS_EXTENSION.length());
+					String crc = computeMD5andEncodeWithURLSafeBase64(content);
+					String cssFileName = root + crc + ".css";
+					String servletPath = constructServletPath(cssFileName);
+
+					if (addServlet) {
+						servletContext.addServlet(cssFileName,
+								new ResourceServlet(content, crc, cacheInSeconds, "text/css")).addMapping(servletPath);
+					}
+
+					linksAndScripts.put(var, servletPath);
+				}
+			}
+		}
+
+		return linksAndScripts;
+
+	}
+
+	private Multimap<String, WebResource> readVariableResources() {
+		Multimap<String, WebResource> varResources = LinkedHashMultimap.create();
 
 		Map<String, String> variables = readVariablesFromPropertyResource();
 		List<String> webResourceLines = readAllLinesFromWebResourceConfigFile();
 
 		String varName = null;
-		Set<String> processedResource = new HashSet<>();
 
 		for (String webResourceLine : webResourceLines) {
 			String line = webResourceLine.trim();
@@ -173,9 +279,6 @@ public class WebResourceProcessor {
 
 			if (line.endsWith(":")) {
 				varName = line.substring(0, line.length() - 1);
-				scriptAndLinkTags.put(varName, new StringBuilder());
-				sourceCodes.put(varName, new StringBuilder());
-				processedResource.clear();
 				continue;
 			}
 
@@ -193,80 +296,25 @@ public class WebResourceProcessor {
 			line = replaceVariables(variables, line);
 
 			if (!production && mode.contains(MODE_DEVELOPMENT)) {
-				scriptAndLinkTags.get(varName).append(createHtmlCode(container, line, varName));
+				varResources.put(varName, new WebResource(line, false));
 			} else if (production && mode.contains(MODE_PRODUCTION)) {
 				if (mode.contains(HTML_SCRIPT_OR_LINK)) {
-					scriptAndLinkTags.get(varName).append(createHtmlCode(container, line, varName));
+					varResources.put(varName, new WebResource(line, false));
 				} else {
 					boolean jsProcessing = varName.endsWith(JS_EXTENSION);
-					List<String> enumeratedResources = enumerateResources(container, line, jsProcessing ? ".js"
-							: ".css");
-					if (jsProcessing) {
-						boolean changed = enumeratedResources.removeAll(ignoreJsResourceFromReordering);
-						enumeratedResources = reorder(container, enumeratedResources);
-						
-						if (changed) {
-							enumeratedResources = new ArrayList<>(enumeratedResources);
-							enumeratedResources.addAll(0, ignoreJsResourceFromReordering);
-						}
+					List<String> enumeratedResources = enumerateResources(line, jsProcessing ? ".js" : ".css");
+					if (jsProcessing && enumeratedResources.size() > 1) {
+						enumeratedResources = reorder(enumeratedResources);
 					}
 
 					for (String resource : enumeratedResources) {
-						if (!processedResource.contains(resource)) {
-							processedResource.add(resource);
-							try (InputStream lis = container.getResourceAsStream(resource)) {
-								String sourcecode = inputStream2String(lis, StandardCharsets.UTF_8);
-								if (jsProcessing) {
-									sourceCodes.get(varName).append(minifyJs(cleanCode(sourcecode))).append('\n');
-								} else {
-									sourceCodes.get(varName).append(compressCss(changeImageUrls(container.getContextPath(), sourcecode, line)));
-								}
-							} catch (IOException ioe) {
-								log.error("web resource processing: " + line, ioe);
-							}
-						}
+						varResources.put(varName, new WebResource(resource, true));
 					}
 				}
 			}
 		}
 
-		for (Map.Entry<String, StringBuilder> entry : sourceCodes.entrySet()) {
-			String key = entry.getKey();
-			if (entry.getValue().length() > 0) {
-				byte[] content = entry.getValue().toString().getBytes(StandardCharsets.UTF_8);
-
-				if (key.endsWith(JS_EXTENSION)) {
-					String root = key.substring(0, key.length() - JS_EXTENSION.length());
-
-					String crc = computeMD5andEncodeWithURLSafeBase64(content);
-					String jsFileName = root + crc + ".js";
-					String servletPath = constructServletPath(jsFileName);
-
-					container.addServlet(jsFileName,
-							new ResourceServlet(content, crc, cacheInSeconds, "application/javascript")).addMapping(
-							servletPath);
-
-					scriptAndLinkTags.get(key).append(
-							String.format(JAVASCRIPT_TAG, container.getContextPath() + servletPath));
-
-				} else if (key.endsWith(CSS_EXTENSION)) {
-					String root = key.substring(0, key.length() - CSS_EXTENSION.length());
-					String crc = computeMD5andEncodeWithURLSafeBase64(content);
-					String cssFileName = root + crc + ".css";
-					String servletPath = constructServletPath(cssFileName);
-					container.addServlet(cssFileName, new ResourceServlet(content, crc, cacheInSeconds, "text/css"))
-							.addMapping(servletPath);
-
-					scriptAndLinkTags.get(key).append(
-							String.format(CSSLINK_TAG, container.getContextPath() + servletPath));
-				}
-			}
-		}
-
-		for (Map.Entry<String, StringBuilder> entry : scriptAndLinkTags.entrySet()) {
-			container.setAttribute(entry.getKey(), entry.getValue().toString());
-		}
-
+		return varResources;
 	}
 
 	private String constructServletPath(String path) {
@@ -281,15 +329,15 @@ public class WebResourceProcessor {
 
 	}
 
-	private List<String> enumerateResources(final ServletContext container, final String line, final String suffix) {
+	private List<String> enumerateResources(final String line, final String suffix) {
 		if (line.endsWith("/")) {
 			List<String> resources = new ArrayList<>();
 
-			Set<String> resourcePaths = container.getResourcePaths(line);
+			Set<String> resourcePaths = servletContext.getResourcePaths(line);
 			if (resourcePaths != null) {
 
 				for (String resource : resourcePaths) {
-					resources.addAll(enumerateResources(container, resource, suffix));
+					resources.addAll(enumerateResources(resource, suffix));
 				}
 			}
 
@@ -317,7 +365,7 @@ public class WebResourceProcessor {
 
 	private final static Pattern requireUsePattern = Pattern.compile("(?s)['\"](.*?)['\"]");
 
-	private static List<String> reorder(ServletContext container, List<String> resources) {
+	private List<String> reorder(List<String> resources) {
 		if (resources.isEmpty() || resources.size() == 1) {
 			return resources;
 		}
@@ -327,10 +375,13 @@ public class WebResourceProcessor {
 		Graph g = new Graph();
 
 		for (String resource : resources) {
+			if (ignoreJsResourceFromReordering.contains(resource)) {
+				continue;
+			}
 
 			g.createNode(resource);
 
-			try (InputStream lis = container.getResourceAsStream(resource)) {
+			try (InputStream lis = servletContext.getResourceAsStream(resource)) {
 				String sourcecode = inputStream2String(lis, StandardCharsets.UTF_8);
 
 				Matcher matcher = definePattern.matcher(sourcecode);
@@ -370,7 +421,7 @@ public class WebResourceProcessor {
 						resourceRequires.put(resource, matcher.group(1));
 					}
 				}
-			
+
 			} catch (IOException ioe) {
 				log.error("web resource processing: " + resource, ioe);
 			}
@@ -388,6 +439,10 @@ public class WebResourceProcessor {
 
 		try {
 			List<Node> resolved = g.resolveDependencies();
+			for (String ignoredRes : ignoreJsResourceFromReordering) {
+				resolved.add(0, new Node(ignoredRes));
+			}
+
 			Collections.sort(resolved, new Comparator<Node>() {
 				@Override
 				public int compare(Node o1, Node o2) {
@@ -455,17 +510,6 @@ public class WebResourceProcessor {
 			}
 			return to.toString();
 		}
-	}
-
-	private static String createHtmlCode(ServletContext container, String line, String varName) {
-		String url = container.getContextPath() + line;
-		if (varName.endsWith(JS_EXTENSION)) {
-			return String.format(JAVASCRIPT_TAG, url);
-		} else if (varName.endsWith(CSS_EXTENSION)) {
-			return String.format(CSSLINK_TAG, url);
-		}
-		log.warn("Variable has to end with {} or {}", JS_EXTENSION, CSS_EXTENSION);
-		return null;
 	}
 
 	private static String changeImageUrls(String contextPath, String cssSourceCode, String cssPath) {
