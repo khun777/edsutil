@@ -75,7 +75,7 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 				} else if (filter instanceof StringFilter && filter.getField().equals("id")) {
 					String value = ((StringFilter) filter).getValue();
 					try {
-                        List<Long> ids = objectMapper.readValue(value, new TypeReference<List<Long>>() {
+						List<Long> ids = objectMapper.readValue(value, new TypeReference<List<Long>>() {
 							// nothing here
 						});
 						query.where(pathBuilder.get(filter.getField(), Long.class).in(ids));
@@ -159,7 +159,7 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 
 	protected PathBuilder<T> createPathBuilder() {
 		Class<T> typeClass = getTypeClass();
-        return new PathBuilder<>(typeClass, StringUtils.uncapitalize(typeClass.getSimpleName()));
+		return new PathBuilder<>(typeClass, StringUtils.uncapitalize(typeClass.getSimpleName()));
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })

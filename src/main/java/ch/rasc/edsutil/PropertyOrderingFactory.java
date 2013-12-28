@@ -18,7 +18,7 @@ public class PropertyOrderingFactory {
 
 	public static <T> Ordering<T> createOrdering(String propertyName) {
 		try {
-            return new PropertyOrdering<>(propertyName);
+			return new PropertyOrdering<>(propertyName);
 		} catch (ParseException e) {
 			return null;
 		}
