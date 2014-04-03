@@ -3,15 +3,15 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ch.rasc</groupId>
 	<artifactId>edsutil</artifactId>
-	<version>1.0.12</version>
+	<version>1.0.13</version>
 
 	<prerequisites>
 		<maven>3.1.0</maven>
 	</prerequisites>
 
 	<properties>
-		<hibernate.version>4.3.4.Final</hibernate.version>
-		<querydsl.version>3.3.1</querydsl.version>
+		<hibernate.version>4.3.5.Final</hibernate.version>
+		<querydsl.version>3.3.2</querydsl.version>
 	</properties>
 
 	<dependencyManagement>
@@ -19,7 +19,7 @@
 			<dependency>
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-framework-bom</artifactId>
-				<version>4.0.2.RELEASE</version>
+				<version>4.0.3.RELEASE</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -31,19 +31,19 @@
 		<dependency>
 			<groupId>ch.ralscha</groupId>
 			<artifactId>extdirectspring</artifactId>
-			<version>1.4.0</version>
+			<version>1.4.1</version>
 		</dependency>
 
 		<dependency>
 			<groupId>ch.rasc</groupId>
 			<artifactId>extclassgenerator-annotations</artifactId>
-			<version>1.0.1</version>
+			<version>1.0.2</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-validator</artifactId>
-			<version>5.0.2.Final</version>
+			<version>5.1.0.Final</version>
 			<optional>true</optional>
 		</dependency>
 
