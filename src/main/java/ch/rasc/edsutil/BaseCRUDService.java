@@ -1,3 +1,18 @@
+/**
+ * Copyright 2013-2014 Ralph Schaer <ralphschaer@gmail.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ch.rasc.edsutil;
 
 import static ch.ralscha.extdirectspring.annotation.ExtDirectMethodType.STORE_MODIFY;
@@ -5,6 +20,7 @@ import static ch.ralscha.extdirectspring.annotation.ExtDirectMethodType.STORE_RE
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -33,7 +49,6 @@ import ch.rasc.edsutil.entity.AbstractPersistable;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import com.mysema.query.SearchResults;
 import com.mysema.query.jpa.JPQLQuery;
 import com.mysema.query.jpa.impl.JPAQuery;
@@ -137,7 +152,7 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 
 	protected List<ValidationError> validateEntity(T entity) {
 		Set<ConstraintViolation<T>> constraintViolations = validator.validate(entity);
-		List<ValidationError> validationErrors = Lists.newArrayList();
+		List<ValidationError> validationErrors = new ArrayList<>();
 		if (!constraintViolations.isEmpty()) {
 			for (ConstraintViolation<T> constraintViolation : constraintViolations) {
 				ValidationError error = new ValidationError();
@@ -153,6 +168,7 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 		// default implementation. do nothing.
 	}
 
+	@SuppressWarnings("unchecked")
 	protected Class<T> getTypeClass() {
 		return (Class<T>) GenericTypeResolver.resolveTypeArgument(getClass(), BaseCRUDService.class);
 	}

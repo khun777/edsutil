@@ -3,7 +3,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>ch.rasc</groupId>
 	<artifactId>edsutil</artifactId>
-	<version>1.0.13</version>
+	<version>2.0.0-SNAPSHOT</version>
+
+	<parent>
+		<artifactId>oss-parent</artifactId>
+		<groupId>org.sonatype.oss</groupId>
+		<version>7</version>
+	</parent>
 
 	<prerequisites>
 		<maven>3.1.0</maven>
@@ -13,6 +19,23 @@
 		<hibernate.version>4.3.5.Final</hibernate.version>
 		<querydsl.version>3.3.2</querydsl.version>
 	</properties>
+
+        <inceptionYear>2013</inceptionYear>
+
+	<developers>
+		<developer>
+			<name>Ralph Schaer</name>
+			<email>ralphschaer@gmail.com</email>
+		</developer>
+	</developers>
+
+	<licenses>
+		<license>
+			<name>Apache 2</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
 
 	<dependencyManagement>
 		<dependencies>
@@ -65,28 +88,6 @@
 			<artifactId>querydsl-jpa</artifactId>
 			<version>${querydsl.version}</version>
 			<optional>true</optional>
-			<exclusions>
-				<exclusion>
-					<artifactId>asm</artifactId>
-					<groupId>asm</groupId>
-				</exclusion>
-				<exclusion>
-					<artifactId>cglib</artifactId>
-					<groupId>cglib</groupId>
-				</exclusion>
-				<exclusion>
-					<artifactId>jsr305</artifactId>
-					<groupId>net.sourceforge.findbugs</groupId>
-				</exclusion>
-				<exclusion>
-					<artifactId>hibernate-jpa-2.0-api</artifactId>
-					<groupId>org.hibernate.javax.persistence</groupId>
-				</exclusion>
-				<exclusion>
-					<artifactId>jsr305</artifactId>
-					<groupId>com.google.code.findbugs</groupId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 
 		<dependency>
@@ -102,35 +103,22 @@
 		</dependency>
 
 		<dependency>
-			<groupId>joda-time</groupId>
-			<artifactId>joda-time</artifactId>
-			<version>2.3</version>
-			<optional>true</optional>
-		</dependency>
-
-		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.3.2</version>
+			<version>2.4.0-rc1</version>
 			<optional>true</optional>
-		</dependency>
-
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>16.0.1</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.6</version>
+			<version>1.7.7</version>
 		</dependency>
 
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>javax.servlet-api</artifactId>
-			<version>3.0.1</version>
+			<version>3.1.0</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -155,41 +143,10 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.1</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 					<encoding>UTF-8</encoding>
 				</configuration>
-			</plugin>
-
-			<plugin>
-				<groupId>com.mysema.maven</groupId>
-				<artifactId>apt-maven-plugin</artifactId>
-				<version>1.1.1</version>
-				<executions>
-					<execution>
-						<id>jpa</id>
-						<goals>
-							<goal>process</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>target/generated-sources/main</outputDirectory>
-							<processor>com.mysema.query.apt.jpa.JPAAnnotationProcessor</processor>
-						</configuration>
-					</execution>
-				</executions>
-				<dependencies>
-					<dependency>
-						<groupId>com.mysema.querydsl</groupId>
-						<artifactId>querydsl-apt</artifactId>
-						<version>${querydsl.version}</version>
-					</dependency>
-					<dependency>
-						<groupId>com.mysema.querydsl</groupId>
-						<artifactId>querydsl-jpa</artifactId>
-						<classifier>apt</classifier>
-						<version>${querydsl.version}</version>
-					</dependency>
-				</dependencies>
 			</plugin>
 
 			<plugin>
@@ -207,8 +164,41 @@
 				</executions>
 			</plugin>
 
-		</plugins>
+			<plugin>
+				<groupId>com.mycila.maven-license-plugin</groupId>
+				<artifactId>maven-license-plugin</artifactId>
+				<version>1.10.b1</version>
+				<configuration>
+					<header>${basedir}/src/main/config/header.txt</header>
+					<properties>
+						<owner>Ralph Schaer</owner>
+						<year>${project.inceptionYear}</year>
+						<currentYear>2014</currentYear>
+						<email>ralphschaer@gmail.com</email>
+					</properties>
+					<excludes>
+						<exclude>**/*.xml</exclude>
+						<exclude>**/*.txt</exclude>
+						<exclude>**/*.md</exclude>
+						<exclude>**/*.json</exclude>
+						<exclude>**/*.py</exclude>
+						<exclude>**/*.yml</exclude>
+						<exclude>**/.gitignore</exclude>
+					</excludes>
+					<strictCheck>true</strictCheck>
+				</configuration>
+				<executions>
+					<execution>
+						<id>check-headers</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 
+		</plugins>
 	</build>
 
 
@@ -218,5 +208,45 @@
 			<url>file:///Z:/var/repository/</url>
 		</repository>
 	</distributionManagement>
+
+<profiles>
+  <profile>
+    <id>generate-querydsl</id>
+    <build>
+      <plugins>
+			<plugin>
+				<groupId>com.mysema.maven</groupId>
+				<artifactId>apt-maven-plugin</artifactId>
+				<version>1.1.1</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>process</goal>
+						</goals>
+						<configuration>
+                            <outputDirectory>target/generated-sources/main</outputDirectory>							
+							<processor>com.mysema.query.apt.jpa.JPAAnnotationProcessor</processor>
+						</configuration>
+					</execution>
+				</executions>
+				<dependencies>
+					<dependency>
+						<groupId>com.mysema.querydsl</groupId>
+						<artifactId>querydsl-apt</artifactId>
+						<version>${querydsl.version}</version>
+					</dependency>
+					<dependency>
+						<groupId>com.mysema.querydsl</groupId>
+						<artifactId>querydsl-jpa</artifactId>
+						<classifier>apt</classifier>
+						<version>${querydsl.version}</version>
+					</dependency>
+				</dependencies>
+			</plugin>      
+      </plugins>
+    </build>
+  </profile>
+</profiles>
+
 
 </project>

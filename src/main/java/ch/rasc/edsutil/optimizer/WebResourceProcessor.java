@@ -1,3 +1,18 @@
+/**
+ * Copyright 2013-2014 Ralph Schaer <ralphschaer@gmail.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ch.rasc.edsutil.optimizer;
 
 import java.io.BufferedReader;
@@ -16,8 +31,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,6 +41,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.servlet.ServletContext;
 import javax.xml.bind.DatatypeConverter;
@@ -39,12 +57,6 @@ import ch.rasc.edsutil.optimizer.graph.CircularReferenceException;
 import ch.rasc.edsutil.optimizer.graph.Graph;
 import ch.rasc.edsutil.optimizer.graph.Node;
 
-import com.google.common.base.Function;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.yahoo.platform.yui.compressor.CssCompressor;
 import com.yahoo.platform.yui.compressor.JavaScriptCompressor;
 
@@ -159,8 +171,8 @@ public class WebResourceProcessor {
 
 	public void process() {
 
-		Multimap<String, WebResource> varResources = readVariableResources();
-		Multimap<String, String> linksAndScripts = minify(varResources, true);
+		Map<String, List<WebResource>> varResources = readVariableResources();
+		Map<String, List<String>> linksAndScripts = minify(varResources, true);
 
 		for (String var : linksAndScripts.keySet()) {
 			StringBuilder sb = new StringBuilder();
@@ -179,8 +191,8 @@ public class WebResourceProcessor {
 	}
 
 	public List<String> getJsAndCssResources() {
-		Multimap<String, WebResource> varResources = readVariableResources();
-		Multimap<String, String> linksAndScripts = minify(varResources, false);
+		Map<String, List<WebResource>> varResources = readVariableResources();
+		Map<String, List<String>> linksAndScripts = minify(varResources, false);
 
 		List<String> jsResources = new ArrayList<>();
 		List<String> cssResources = new ArrayList<>();
@@ -198,11 +210,13 @@ public class WebResourceProcessor {
 		return cssResources;
 	}
 
-	private Multimap<String, String> minify(Multimap<String, WebResource> varResources, boolean addServlet) {
+	private Map<String, List<String>> minify(Map<String, List<WebResource>> varResources, boolean addServlet) {
 
-		Multimap<String, String> linksAndScripts = LinkedHashMultimap.create();
+		Map<String, List<String>> linksAndScripts = new LinkedHashMap<>();
 
 		for (String var : varResources.keySet()) {
+			List<String> resources = new ArrayList<>();
+
 			StringBuilder minifiedSource = new StringBuilder();
 
 			boolean jsProcessing = var.endsWith(JS_EXTENSION);
@@ -221,7 +235,7 @@ public class WebResourceProcessor {
 					}
 
 				} else {
-					linksAndScripts.put(var, resource.getPath());
+					resources.add(resource.getPath());
 				}
 			}
 
@@ -241,7 +255,7 @@ public class WebResourceProcessor {
 								.addMapping(servletPath);
 					}
 
-					linksAndScripts.put(var, servletPath);
+					resources.add(servletPath);
 
 				} else {
 					String root = var.substring(0, var.length() - CSS_EXTENSION.length());
@@ -254,8 +268,12 @@ public class WebResourceProcessor {
 								new ResourceServlet(content, crc, cacheInSeconds, "text/css")).addMapping(servletPath);
 					}
 
-					linksAndScripts.put(var, servletPath);
+					resources.add(servletPath);
 				}
+			}
+
+			if (!resources.isEmpty()) {
+				linksAndScripts.put(var, resources);
 			}
 		}
 
@@ -263,8 +281,8 @@ public class WebResourceProcessor {
 
 	}
 
-	private Multimap<String, WebResource> readVariableResources() {
-		Multimap<String, WebResource> varResources = LinkedHashMultimap.create();
+	private Map<String, List<WebResource>> readVariableResources() {
+		Stream.Builder<WebResource> streamBuilder = Stream.builder();
 
 		Map<String, String> variables = readVariablesFromPropertyResource();
 		List<String> webResourceLines = readAllLinesFromWebResourceConfigFile();
@@ -296,10 +314,10 @@ public class WebResourceProcessor {
 			line = replaceVariables(variables, line);
 
 			if (!production && mode.contains(MODE_DEVELOPMENT)) {
-				varResources.put(varName, new WebResource(line, false));
+				streamBuilder.accept(new WebResource(varName, line, false));
 			} else if (production && mode.contains(MODE_PRODUCTION)) {
 				if (mode.contains(HTML_SCRIPT_OR_LINK)) {
-					varResources.put(varName, new WebResource(line, false));
+					streamBuilder.accept(new WebResource(varName, line, false));
 				} else {
 					boolean jsProcessing = varName.endsWith(JS_EXTENSION);
 					List<String> enumeratedResources = enumerateResources(line, jsProcessing ? ".js" : ".css");
@@ -308,13 +326,13 @@ public class WebResourceProcessor {
 					}
 
 					for (String resource : enumeratedResources) {
-						varResources.put(varName, new WebResource(resource, true));
+						streamBuilder.accept(new WebResource(varName, resource, true));
 					}
 				}
 			}
 		}
 
-		return varResources;
+		return streamBuilder.build().collect(Collectors.groupingBy(WebResource::getVarName));
 	}
 
 	private String constructServletPath(String path) {
@@ -370,11 +388,12 @@ public class WebResourceProcessor {
 			return resources;
 		}
 
-		Map<String, String> classToFileMap = Maps.newHashMap();
-		Multimap<String, String> resourceRequires = HashMultimap.create();
+		Map<String, String> classToFileMap = new HashMap<>();
+		Map<String, Set<String>> resourceRequires = new HashMap<>();
 		Graph g = new Graph();
 
 		for (String resource : resources) {
+
 			if (ignoreJsResourceFromReordering.contains(resource)) {
 				continue;
 			}
@@ -382,6 +401,8 @@ public class WebResourceProcessor {
 			g.createNode(resource);
 
 			try (InputStream lis = servletContext.getResourceAsStream(resource)) {
+				Set<String> requires = new HashSet<>();
+
 				String sourcecode = inputStream2String(lis, StandardCharsets.UTF_8);
 
 				Matcher matcher = definePattern.matcher(sourcecode);
@@ -391,17 +412,17 @@ public class WebResourceProcessor {
 
 				matcher = extendPattern.matcher(sourcecode);
 				if (matcher.find()) {
-					resourceRequires.put(resource, matcher.group(1));
+					requires.add(matcher.group(1));
 				}
 
 				matcher = controllerPattern.matcher(sourcecode);
 				if (matcher.find()) {
-					resourceRequires.put(resource, matcher.group(1));
+					requires.add(matcher.group(1));
 				}
 
 				matcher = modelPattern.matcher(sourcecode);
 				if (matcher.find()) {
-					resourceRequires.put(resource, matcher.group(1));
+					requires.add(matcher.group(1));
 				}
 
 				matcher = requiresPattern.matcher(sourcecode);
@@ -409,7 +430,7 @@ public class WebResourceProcessor {
 					String all = matcher.group(1);
 					matcher = requireUsePattern.matcher(all);
 					while (matcher.find()) {
-						resourceRequires.put(resource, matcher.group(1));
+						requires.add(matcher.group(1));
 					}
 				}
 
@@ -418,9 +439,11 @@ public class WebResourceProcessor {
 					String all = matcher.group(1);
 					matcher = requireUsePattern.matcher(all);
 					while (matcher.find()) {
-						resourceRequires.put(resource, matcher.group(1));
+						requires.add(matcher.group(1));
 					}
 				}
+
+				resourceRequires.put(resource, requires);
 
 			} catch (IOException ioe) {
 				log.error("web resource processing: " + resource, ioe);
@@ -443,19 +466,8 @@ public class WebResourceProcessor {
 				resolved.add(0, new Node(ignoredRes));
 			}
 
-			Collections.sort(resolved, new Comparator<Node>() {
-				@Override
-				public int compare(Node o1, Node o2) {
-					return o1.getEdges().size() == 0 ? -1 : 0;
-				}
-			});
-
-			return Lists.transform(resolved, new Function<Node, String>() {
-				@Override
-				public String apply(Node input) {
-					return input.getName();
-				}
-			});
+			return resolved.stream().sorted((o1, o2) -> o1.getEdges().size() == 0 ? -1 : 0).map(Node::getName)
+					.collect(Collectors.toList());
 
 		} catch (CircularReferenceException e) {
 			log.error("circular reference", e);

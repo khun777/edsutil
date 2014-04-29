@@ -13,15 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ch.rasc.edsutil;
+package ch.rasc.edsutil.entity;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
-@Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface SortProperty {
-	String value();
+import javax.persistence.AttributeConverter;
+import javax.persistence.Converter;
+
+@Converter(autoApply = true)
+public class LocalDateTimeConverter implements AttributeConverter<LocalDateTime, Timestamp> {
+
+	@Override
+	public Timestamp convertToDatabaseColumn(LocalDateTime value) {
+		if (value != null) {
+			return Timestamp.valueOf(value);
+		}
+		return null;
+	}
+
+	@Override
+	public LocalDateTime convertToEntityAttribute(Timestamp value) {
+		if (value != null) {
+			return value.toLocalDateTime();
+		}
+		return null;
+	}
+
 }

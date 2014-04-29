@@ -13,15 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ch.rasc.edsutil;
+package ch.rasc.edsutil.jackson;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.io.IOException;
+import java.time.LocalDateTime;
 
-@Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface SortProperty {
-	String value();
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+
+public class ISO8601LocalDateTimeSerializer extends JsonSerializer<LocalDateTime> {
+
+	@Override
+	public void serialize(LocalDateTime value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+		jgen.writeString(value.toString());
+	}
 }
