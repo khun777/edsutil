@@ -30,6 +30,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,12 +46,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.servlet.ServletContext;
-import javax.xml.bind.DatatypeConverter;
 
 import org.mozilla.javascript.ErrorReporter;
 import org.mozilla.javascript.EvaluatorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.util.StringUtils;
 
 import ch.rasc.edsutil.optimizer.graph.CircularReferenceException;
@@ -116,9 +119,16 @@ public class WebResourceProcessor {
 
 	private final ServletContext servletContext;
 
-	public WebResourceProcessor(final ServletContext servletContext, final boolean production) {
+	private final String classpathPrefix;
+
+	private final PathMatchingResourcePatternResolver resolver;
+
+	public WebResourceProcessor(final ServletContext servletContext, final boolean production,
+			final String classpathPrefix) {
 		this.servletContext = servletContext;
 		this.production = production;
+		this.classpathPrefix = classpathPrefix;
+		this.resolver = new PathMatchingResourcePatternResolver();
 	}
 
 	public void setResourceServletPath(String path) {
@@ -169,7 +179,7 @@ public class WebResourceProcessor {
 		this.jsCompressordisableOptimizations = jsCompressordisableOptimizations;
 	}
 
-	public void process() {
+	public void process() throws IOException {
 
 		Map<String, List<WebResource>> varResources = readVariableResources();
 		Map<String, List<String>> linksAndScripts = minify(varResources, true);
@@ -190,7 +200,7 @@ public class WebResourceProcessor {
 
 	}
 
-	public List<String> getJsAndCssResources() {
+	public List<String> getJsAndCssResources() throws IOException {
 		Map<String, List<WebResource>> varResources = readVariableResources();
 		Map<String, List<String>> linksAndScripts = minify(varResources, false);
 
@@ -222,7 +232,16 @@ public class WebResourceProcessor {
 			boolean jsProcessing = var.endsWith(JS_EXTENSION);
 			for (WebResource resource : varResources.get(var)) {
 				if (resource.isMinify()) {
-					try (InputStream lis = servletContext.getResourceAsStream(resource.getPath())) {
+
+					InputStream lis = null;
+
+					try {
+						if (classpathPrefix != null) {
+							lis = new ClassPathResource(classpathPrefix + resource.getPath()).getInputStream();
+						} else {
+							lis = servletContext.getResourceAsStream(resource.getPath());
+						}
+
 						String sourcecode = inputStream2String(lis, StandardCharsets.UTF_8);
 						if (jsProcessing) {
 							minifiedSource.append(minifyJs(cleanCode(sourcecode))).append('\n');
@@ -232,6 +251,14 @@ public class WebResourceProcessor {
 						}
 					} catch (IOException ioe) {
 						log.error("web resource processing: " + resource.getPath(), ioe);
+					} finally {
+						try {
+							if (lis != null) {
+								lis.close();
+							}
+						} catch (IOException e) {
+							// ignore this
+						}
 					}
 
 				} else {
@@ -281,7 +308,7 @@ public class WebResourceProcessor {
 
 	}
 
-	private Map<String, List<WebResource>> readVariableResources() {
+	private Map<String, List<WebResource>> readVariableResources() throws IOException {
 		Stream.Builder<WebResource> streamBuilder = Stream.builder();
 
 		Map<String, String> variables = readVariablesFromPropertyResource();
@@ -347,15 +374,23 @@ public class WebResourceProcessor {
 
 	}
 
-	private List<String> enumerateResources(final String line, final String suffix) {
+	private List<String> enumerateResources(final String line, final String suffix) throws IOException {
 		if (line.endsWith("/")) {
 			List<String> resources = new ArrayList<>();
 
-			Set<String> resourcePaths = servletContext.getResourcePaths(line);
-			if (resourcePaths != null) {
+			if (classpathPrefix != null) {
 
-				for (String resource : resourcePaths) {
-					resources.addAll(enumerateResources(resource, suffix));
+				for (Resource resource : resolver.getResources("classpath:" + classpathPrefix + line + "*")) {
+					System.out.println(resource);
+					resources.addAll(enumerateResources("/" + resource.getFilename(), suffix));
+				}
+			} else {
+				Set<String> resourcePaths = servletContext.getResourcePaths(line);
+				if (resourcePaths != null) {
+
+					for (String resource : resourcePaths) {
+						resources.addAll(enumerateResources(resource, suffix));
+					}
 				}
 			}
 
@@ -400,7 +435,15 @@ public class WebResourceProcessor {
 
 			g.createNode(resource);
 
-			try (InputStream lis = servletContext.getResourceAsStream(resource)) {
+			InputStream lis = null;
+			try {
+
+				if (classpathPrefix != null) {
+					lis = new ClassPathResource(classpathPrefix + resource).getInputStream();
+				} else {
+					lis = servletContext.getResourceAsStream(resource);
+				}
+
 				Set<String> requires = new HashSet<>();
 
 				String sourcecode = inputStream2String(lis, StandardCharsets.UTF_8);
@@ -447,6 +490,15 @@ public class WebResourceProcessor {
 
 			} catch (IOException ioe) {
 				log.error("web resource processing: " + resource, ioe);
+			} finally {
+				try {
+					if (lis != null) {
+						lis.close();
+					}
+				} catch (IOException e) {
+					// ignore this
+				}
+
 			}
 		}
 
@@ -488,7 +540,7 @@ public class WebResourceProcessor {
 	}
 
 	private List<String> readAllLinesFromWebResourceConfigFile() {
-		try (InputStream is = getClass().getResourceAsStream(webResourcesConfigName)) {
+		try (InputStream is = new ClassPathResource(webResourcesConfigName).getInputStream()) {
 			return readAllLines(is, StandardCharsets.UTF_8);
 		} catch (IOException ioe) {
 			log.error("read lines from web resource config '" + webResourcesConfigName + "'", ioe);
@@ -571,7 +623,7 @@ public class WebResourceProcessor {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Map<String, String> readVariablesFromPropertyResource() {
 		if (versionPropertiesName != null) {
-			try (InputStream is = getClass().getResourceAsStream(versionPropertiesName)) {
+			try (InputStream is = new ClassPathResource(versionPropertiesName).getInputStream()) {
 				Properties properties = new Properties();
 				properties.load(is);
 				return (Map) properties;
@@ -588,8 +640,7 @@ public class WebResourceProcessor {
 			md5Digest.update(content);
 			byte[] md5 = md5Digest.digest();
 
-			String base64 = DatatypeConverter.printBase64Binary(md5);
-			return base64.replace('+', '-').replace('/', '_').replace("=", "");
+			return Base64.getUrlEncoder().encodeToString(md5);
 
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
