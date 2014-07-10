@@ -15,7 +15,9 @@
  */
 package ch.rasc.edsutil;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,46 +31,66 @@ import com.mysema.query.types.OrderSpecifier;
 import com.mysema.query.types.path.EntityPathBase;
 import com.mysema.query.types.path.PathBuilder;
 
-public class QueryUtil {
+public abstract class QueryUtil {
 
-	private QueryUtil() {
-		// do not instantiate this class
-	}
-
-	public static void addPagingAndSorting(JPQLQuery query, ExtDirectStoreReadRequest request, Class<?> clazz,
+	public static void addPagingAndSorting(JPQLQuery query,
+			ExtDirectStoreReadRequest request, Class<?> clazz,
 			EntityPathBase<?> entityPathBase) {
-		addPagingAndSorting(query, request, clazz, entityPathBase, Collections.<String, String> emptyMap(),
-				Collections.<String> emptySet());
+		addPagingAndSorting(query, request, clazz, entityPathBase,
+				Collections.<String, String> emptyMap(), Collections.<String> emptySet());
 	}
 
-	public static void addSorting(JPQLQuery query, ExtDirectStoreReadRequest request, Class<?> clazz,
-			EntityPathBase<?> entityPathBase) {
-		addSorting(query, request, clazz, entityPathBase, Collections.<String, String> emptyMap(),
-				Collections.<String> emptySet());
+	public static void addSorting(JPQLQuery query, ExtDirectStoreReadRequest request,
+			Class<?> clazz, EntityPathBase<?> entityPathBase) {
+		addSorting(query, request, clazz, entityPathBase,
+				Collections.<String, String> emptyMap(), Collections.<String> emptySet());
 	}
 
-	public static void addPagingAndSorting(JPQLQuery query, ExtDirectStoreReadRequest request, Class<?> clazz,
-			EntityPathBase<?> entityPathBase, Map<String, String> mapGuiColumn2Dbfield, Set<String> sortIgnoreProperties) {
+	public static void addPagingAndSorting(JPQLQuery query,
+			ExtDirectStoreReadRequest request, Class<?> clazz,
+			EntityPathBase<?> entityPathBase, Map<String, String> mapGuiColumn2Dbfield,
+			Set<String> sortIgnoreProperties) {
 
-		if (request.getStart() != null && request.getLimit() != null && request.getLimit() > 0) {
+		if (request.getStart() != null && request.getLimit() != null
+				&& request.getLimit() > 0) {
 			query.offset(request.getStart()).limit(request.getLimit());
 		}
 
-		addSorting(query, request, clazz, entityPathBase, mapGuiColumn2Dbfield, sortIgnoreProperties);
+		addSorting(query, request, clazz, entityPathBase, mapGuiColumn2Dbfield,
+				sortIgnoreProperties);
+	}
+
+	public static void addSorting(JPQLQuery query, ExtDirectStoreReadRequest request,
+			Class<?> clazz, EntityPathBase<?> entityPathBase,
+			Map<String, String> mapGuiColumn2Dbfield, Set<String> sortIgnoreProperties) {
+
+		if (!request.getSorters().isEmpty()) {
+			query.orderBy(createOrderSpecifiers(request, clazz, entityPathBase,
+					mapGuiColumn2Dbfield, sortIgnoreProperties));
+		}
+
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public static void addSorting(JPQLQuery query, ExtDirectStoreReadRequest request, Class<?> clazz,
-			EntityPathBase<?> entityPathBase, Map<String, String> mapGuiColumn2Dbfield, Set<String> sortIgnoreProperties) {
+	public static OrderSpecifier[] createOrderSpecifiers(
+			ExtDirectStoreReadRequest request, Class<?> clazz,
+			EntityPathBase<?> entityPathBase, Map<String, String> mapGuiColumn2Dbfield,
+			Set<String> sortIgnoreProperties) {
+
+		List<OrderSpecifier> orders;
+
 		if (!request.getSorters().isEmpty()) {
-			PathBuilder<?> entityPath = new PathBuilder<>(clazz, entityPathBase.getMetadata());
+			orders = new ArrayList<>();
+			PathBuilder<?> entityPath = new PathBuilder<>(clazz,
+					entityPathBase.getMetadata());
 			for (SortInfo sortInfo : request.getSorters()) {
 
 				if (!sortIgnoreProperties.contains(sortInfo.getProperty())) {
 					Order order;
 					if (sortInfo.getDirection() == SortDirection.ASCENDING) {
 						order = Order.ASC;
-					} else {
+					}
+					else {
 						order = Order.DESC;
 					}
 
@@ -77,9 +99,15 @@ public class QueryUtil {
 						property = sortInfo.getProperty();
 					}
 
-					query.orderBy(new OrderSpecifier(order, entityPath.get(property)));
+					orders.add(new OrderSpecifier(order, entityPath.get(property)));
 				}
 			}
+
 		}
+		else {
+			orders = Collections.emptyList();
+		}
+
+		return orders.toArray(new OrderSpecifier[orders.size()]);
 	}
 }

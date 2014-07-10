@@ -32,7 +32,8 @@ public class QAbstractPersistable extends EntityPathBase<AbstractPersistable> {
 
 	private static final long serialVersionUID = 1928985407L;
 
-	public static final QAbstractPersistable abstractPersistable = new QAbstractPersistable("abstractPersistable");
+	public static final QAbstractPersistable abstractPersistable = new QAbstractPersistable(
+			"abstractPersistable");
 
 	public final NumberPath<Long> id = createNumber("id", Long.class);
 

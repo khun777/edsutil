@@ -80,21 +80,28 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 					NumericFilter nf = (NumericFilter) filter;
 					int pointPos = nf.getField().indexOf('.');
 					if (pointPos == -1) {
-						query.where(pathBuilder.get(nf.getField(), Long.class).eq(nf.getValue().longValue()));
-					} else {
+						query.where(pathBuilder.get(nf.getField(), Long.class).eq(
+								nf.getValue().longValue()));
+					}
+					else {
 						String property = nf.getField().substring(0, pointPos);
 						String field = nf.getField().substring(pointPos + 1);
-						query.where(pathBuilder.get(property).get(field, Long.class).eq(nf.getValue().longValue()));
+						query.where(pathBuilder.get(property).get(field, Long.class)
+								.eq(nf.getValue().longValue()));
 
 					}
-				} else if (filter instanceof StringFilter && filter.getField().equals("id")) {
+				}
+				else if (filter instanceof StringFilter && filter.getField().equals("id")) {
 					String value = ((StringFilter) filter).getValue();
 					try {
-						List<Long> ids = objectMapper.readValue(value, new TypeReference<List<Long>>() {
-							// nothing here
-						});
-						query.where(pathBuilder.get(filter.getField(), Long.class).in(ids));
-					} catch (IOException e) {
+						List<Long> ids = objectMapper.readValue(value,
+								new TypeReference<List<Long>>() {
+									// nothing here
+								});
+						query.where(pathBuilder.get(filter.getField(), Long.class)
+								.in(ids));
+					}
+					catch (IOException e) {
 						// ignore this for now
 						e.printStackTrace();
 					}
@@ -129,7 +136,8 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 			return new ExtDirectStoreValidationResult<>(newEntity);
 		}
 
-		ExtDirectStoreValidationResult<T> result = new ExtDirectStoreValidationResult<>(newEntity);
+		ExtDirectStoreValidationResult<T> result = new ExtDirectStoreValidationResult<>(
+				newEntity);
 		result.setValidations(violations);
 		return result;
 
@@ -142,10 +150,12 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 
 		List<ValidationError> violations = validateEntity(updatedEntity);
 		if (violations.isEmpty()) {
-			return new ExtDirectStoreValidationResult<>(entityManager.merge(updatedEntity));
+			return new ExtDirectStoreValidationResult<>(
+					entityManager.merge(updatedEntity));
 		}
 
-		ExtDirectStoreValidationResult<T> result = new ExtDirectStoreValidationResult<>(updatedEntity);
+		ExtDirectStoreValidationResult<T> result = new ExtDirectStoreValidationResult<>(
+				updatedEntity);
 		result.setValidations(violations);
 		return result;
 	}
@@ -170,16 +180,19 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 
 	@SuppressWarnings("unchecked")
 	protected Class<T> getTypeClass() {
-		return (Class<T>) GenericTypeResolver.resolveTypeArgument(getClass(), BaseCRUDService.class);
+		return (Class<T>) GenericTypeResolver.resolveTypeArgument(getClass(),
+				BaseCRUDService.class);
 	}
 
 	protected PathBuilder<T> createPathBuilder() {
 		Class<T> typeClass = getTypeClass();
-		return new PathBuilder<>(typeClass, StringUtils.uncapitalize(typeClass.getSimpleName()));
+		return new PathBuilder<>(typeClass, StringUtils.uncapitalize(typeClass
+				.getSimpleName()));
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	protected void addSorting(ExtDirectStoreReadRequest request, JPQLQuery query, PathBuilder<?> pathBuilder) {
+	protected void addSorting(ExtDirectStoreReadRequest request, JPQLQuery query,
+			PathBuilder<?> pathBuilder) {
 
 		Class<?> clazz = getTypeClass();
 
@@ -189,7 +202,8 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 				Order order;
 				if (sortInfo.getDirection() == SortDirection.ASCENDING) {
 					order = Order.ASC;
-				} else {
+				}
+				else {
 					order = Order.DESC;
 				}
 
@@ -202,15 +216,18 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 					PathBuilder path = new PathBuilder(field.getType(), splittedValue[0]);
 					query.leftJoin(pathBuilder.get(splittedValue[0]), path);
 					query.orderBy(new OrderSpecifier(order, path.get(splittedValue[1])));
-				} else {
-					query.orderBy(new OrderSpecifier(order, pathBuilder.get(sortInfo.getProperty())));
+				}
+				else {
+					query.orderBy(new OrderSpecifier(order, pathBuilder.get(sortInfo
+							.getProperty())));
 				}
 
 			}
 		}
 	}
 
-	protected void addPagingAndSorting(ExtDirectStoreReadRequest request, JPQLQuery query, PathBuilder<?> pathBuilder) {
+	protected void addPagingAndSorting(ExtDirectStoreReadRequest request,
+			JPQLQuery query, PathBuilder<?> pathBuilder) {
 
 		if (request.getStart() != null && request.getLimit() > 0) {
 			query.offset(request.getStart()).limit(request.getLimit());
