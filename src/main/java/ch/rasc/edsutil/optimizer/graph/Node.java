@@ -19,14 +19,16 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.springframework.core.io.Resource;
+
 public class Node {
 
-	private final String name;
+	private final Resource resource;
 
 	private final Set<Node> edges = new HashSet<>();
 
-	public Node(String name) {
-		this.name = name;
+	public Node(Resource resource) {
+		this.resource = resource;
 	}
 
 	public void addEdge(Node edge) {
@@ -37,8 +39,8 @@ public class Node {
 		edges.remove(edge);
 	}
 
-	public String getName() {
-		return name;
+	public Resource getResource() {
+		return resource;
 	}
 
 	public Set<Node> getEdges() {
@@ -47,14 +49,17 @@ public class Node {
 
 	@Override
 	public String toString() {
-		return "Node [name=" + name + "]";
+		return "Node [" + resource.getDescription() + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + (name == null ? 0 : name.hashCode());
+
+		result = prime * result
+				+ (resource == null ? 0 : resource.getDescription().hashCode());
+
 		return result;
 	}
 
@@ -70,13 +75,15 @@ public class Node {
 			return false;
 		}
 		Node other = (Node) obj;
-		if (name == null) {
-			if (other.name != null) {
+		if (resource == null) {
+			if (other.resource != null) {
 				return false;
 			}
-		} else if (!name.equals(other.name)) {
+		}
+		else if (!resource.getDescription().equals(other.resource.getDescription())) {
 			return false;
 		}
+
 		return true;
 	}
 

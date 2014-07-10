@@ -15,17 +15,19 @@
  */
 package ch.rasc.edsutil.optimizer;
 
+import org.springframework.core.io.Resource;
+
 public class WebResource {
 
 	private final String varName;
 
-	private final String path;
+	private final Resource resource;
 
 	private final boolean minify;
 
-	public WebResource(String varName, String path, boolean minify) {
+	public WebResource(String varName, Resource resource, boolean minify) {
 		this.varName = varName;
-		this.path = path;
+		this.resource = resource;
 		this.minify = minify;
 	}
 
@@ -33,8 +35,8 @@ public class WebResource {
 		return varName;
 	}
 
-	public String getPath() {
-		return path;
+	public Resource getResource() {
+		return resource;
 	}
 
 	public boolean isMinify() {
@@ -46,7 +48,8 @@ public class WebResource {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + (minify ? 1231 : 1237);
-		result = prime * result + (path == null ? 0 : path.hashCode());
+		result = prime * result
+				+ (resource == null ? 0 : resource.getDescription().hashCode());
 		result = prime * result + (varName == null ? 0 : varName.hashCode());
 		return result;
 	}
@@ -66,18 +69,22 @@ public class WebResource {
 		if (minify != other.minify) {
 			return false;
 		}
-		if (path == null) {
-			if (other.path != null) {
+		if (resource == null) {
+			if (other.resource != null) {
 				return false;
 			}
-		} else if (!path.equals(other.path)) {
-			return false;
+		}
+		else {
+			if (!resource.getDescription().equals(other.resource.getDescription())) {
+				return false;
+			}
 		}
 		if (varName == null) {
 			if (other.varName != null) {
 				return false;
 			}
-		} else if (!varName.equals(other.varName)) {
+		}
+		else if (!varName.equals(other.varName)) {
 			return false;
 		}
 		return true;

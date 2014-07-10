@@ -15,6 +15,7 @@
  */
 package ch.rasc.edsutil.optimizer.graph;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,20 +23,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.core.io.Resource;
+
 public class Graph {
 
 	private final Map<String, Node> nodesDb = new HashMap<>();
 
-	public Node createNode(String name) {
-		Node newNode = nodesDb.get(name);
+	public Node createNode(Resource resource) {
+		Node newNode = nodesDb.get(resource.getDescription());
 		if (newNode == null) {
-			newNode = new Node(name);
-			nodesDb.put(name, newNode);
+			newNode = new Node(resource);
+			nodesDb.put(resource.getDescription(), newNode);
 		}
 		return newNode;
 	}
 
-	public List<Node> resolveDependencies() throws CircularReferenceException {
+	public List<Node> resolveDependencies() throws CircularReferenceException,
+			IOException {
 		List<Node> resolved = new ArrayList<>();
 		Set<Node> unresolved = new HashSet<>();
 		for (Node node : nodesDb.values()) {
@@ -46,7 +50,8 @@ public class Graph {
 		return resolved;
 	}
 
-	private void depResolve(Node node, List<Node> resolved, Set<Node> unresolved) throws CircularReferenceException {
+	private void depResolve(Node node, List<Node> resolved, Set<Node> unresolved)
+			throws CircularReferenceException, IOException {
 		unresolved.add(node);
 		for (Node edge : node.getEdges()) {
 			if (!resolved.contains(edge)) {
