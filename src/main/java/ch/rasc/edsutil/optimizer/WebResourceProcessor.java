@@ -74,12 +74,6 @@ public class WebResourceProcessor {
 
 	private final static Logger log = LoggerFactory.getLogger("ch.rasc.edsutil");
 
-	private static final String HTML_SCRIPT_OR_LINK = "s";
-
-	private static final String MODE_PRODUCTION = "p";
-
-	private static final String MODE_DEVELOPMENT = "d";
-
 	private static final String CSS_EXTENSION = "_css";
 
 	private static final String JS_EXTENSION = "_js";
@@ -254,13 +248,13 @@ public class WebResourceProcessor {
 						}
 						else {
 							minifiedSource.append(compressCss(changeImageUrls(
-									servletContext.getContextPath(), sourcecode, resource
-											.getResource().getDescription())));
+									servletContext.getContextPath(), sourcecode,
+									resource.getPath())));
 						}
 					}
 					catch (IOException ioe) {
-						log.error("web resource processing: " + resource.getResource(),
-								ioe);
+						log.error("web resource processing: "
+								+ resource.getResource().getDescription(), ioe);
 					}
 
 				}
@@ -340,12 +334,12 @@ public class WebResourceProcessor {
 
 			if (!production && config.isDevScriptOrLink()) {
 				DescriptiveResource resource = new DescriptiveResource(path);
-				webResources.add(new WebResource(varName, resource, false));
+				webResources.add(new WebResource(varName, path, resource, false));
 			}
 			else if (production && config.isProd()) {
 				if (config.isProdScriptOrLink()) {
 					DescriptiveResource resource = new DescriptiveResource(path);
-					webResources.add(new WebResource(varName, resource, false));
+					webResources.add(new WebResource(varName, path, resource, false));
 				}
 				else {
 					try {
@@ -365,7 +359,15 @@ public class WebResourceProcessor {
 						}
 
 						for (Resource resource : enumeratedResources) {
-							webResources.add(new WebResource(varName, resource, true));
+							String resourcePath = resource.getURL().toString();
+
+							int pathIx = resourcePath.indexOf(path);
+							if (pathIx != -1) {
+								resourcePath = resourcePath.substring(pathIx);
+							}
+
+							webResources.add(new WebResource(varName, resourcePath,
+									resource, true));
 						}
 					}
 					catch (IOException e) {

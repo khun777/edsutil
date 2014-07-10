@@ -25,10 +25,13 @@ public class WebResource {
 
 	private final boolean minify;
 
-	public WebResource(String varName, Resource resource, boolean minify) {
+	private final String path;
+
+	public WebResource(String varName, String path, Resource resource, boolean minify) {
 		this.varName = varName;
 		this.resource = resource;
 		this.minify = minify;
+		this.path = path;
 	}
 
 	public String getVarName() {
@@ -37,6 +40,10 @@ public class WebResource {
 
 	public Resource getResource() {
 		return resource;
+	}
+
+	public String getPath() {
+		return path;
 	}
 
 	public boolean isMinify() {
@@ -74,10 +81,8 @@ public class WebResource {
 				return false;
 			}
 		}
-		else {
-			if (!resource.getDescription().equals(other.resource.getDescription())) {
-				return false;
-			}
+		else if (!resource.getDescription().equals(other.resource.getDescription())) {
+			return false;
 		}
 		if (varName == null) {
 			if (other.varName != null) {
