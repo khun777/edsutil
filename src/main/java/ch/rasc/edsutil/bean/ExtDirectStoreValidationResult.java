@@ -37,7 +37,7 @@ public class ExtDirectStoreValidationResult<T> extends ExtDirectStoreResult<T> {
 	public void setValidations(List<ValidationError> validations) {
 		this.validations = validations;
 		if (this.validations != null && !this.validations.isEmpty()) {
-			setSuccess(false);
+			setSuccess(Boolean.FALSE);
 		}
 	}
 
