@@ -121,7 +121,7 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 		entityManager.remove(dbEntity);
 
 		ExtDirectStoreResult<T> result = new ExtDirectStoreResult<>();
-		result.setSuccess(true);
+		result.setSuccess(Boolean.TRUE);
 		return result;
 	}
 
