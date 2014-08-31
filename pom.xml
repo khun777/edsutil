@@ -48,7 +48,7 @@
 		<dependency>
 			<groupId>ch.ralscha</groupId>
 			<artifactId>extdirectspring</artifactId>
-			<version>1.4.2</version>
+			<version>1.4.3</version>
 		</dependency>
 
 		<dependency>
@@ -60,7 +60,7 @@
 		<dependency>
 			<groupId>org.yaml</groupId>
 			<artifactId>snakeyaml</artifactId>
-			<version>1.13</version>
+			<version>1.14</version>
 		</dependency>
 
 		<dependency>
