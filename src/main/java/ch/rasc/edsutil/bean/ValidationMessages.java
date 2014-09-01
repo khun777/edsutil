@@ -36,4 +36,7 @@ public class ValidationMessages {
 		this.messages = messages;
 	}
 
+	public void setMessage(String message) {
+		this.messages = new String[] { message };
+	}
 }
