@@ -28,7 +28,8 @@ import ch.rasc.edsutil.bean.ValidationMessages;
 
 public abstract class ValidationUtil {
 
-	protected <T> List<ValidationMessages> validateEntity(Validator validator, T entity) {
+	public static <T> List<ValidationMessages> validateEntity(Validator validator,
+			T entity) {
 		Set<ConstraintViolation<T>> constraintViolations = validator.validate(entity);
 		Map<String, List<String>> fieldMessages = new HashMap<>();
 		if (!constraintViolations.isEmpty()) {
