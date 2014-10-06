@@ -30,7 +30,7 @@ public abstract class ValidationUtil {
 
 	public static <T> List<ValidationMessages> validateEntity(Validator validator,
 			T entity, Class<?>... groups) {
-		System.out.println(groups);
+		
 		Set<ConstraintViolation<T>> constraintViolations = validator.validate(entity,
 				groups);
 		Map<String, List<String>> fieldMessages = new HashMap<>();
