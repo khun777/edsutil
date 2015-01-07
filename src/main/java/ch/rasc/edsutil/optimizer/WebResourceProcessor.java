@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Ralph Schaer <ralphschaer@gmail.com>
+ * Copyright 2013-2015 Ralph Schaer <ralphschaer@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -608,7 +608,7 @@ public class WebResourceProcessor {
 		while (matcher.find()) {
 			String url = matcher.group(2);
 			url = url.trim();
-			if (url.equals("#default#VML")) {
+			if (url.equals("#default#VML") || url.startsWith("data:")) {
 				continue;
 			}
 			Path pa = basePath.resolveSibling(url).normalize();
