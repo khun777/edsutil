@@ -139,7 +139,7 @@ public class WebResourceProcessor {
 	}
 
 	public void ignoreJsResourceFromReordering(Resource resource) {
-		ignoreJsResourceFromReordering.add(resource);
+		this.ignoreJsResourceFromReordering.add(resource);
 	}
 
 	public void setCacheInSeconds(int cacheInSeconds) {
@@ -190,16 +190,16 @@ public class WebResourceProcessor {
 			if (var.endsWith(JS_EXTENSION)) {
 				for (String res : linksAndScripts.get(var)) {
 					sb.append(String.format(JAVASCRIPT_TAG,
-							servletContext.getContextPath() + res));
+							this.servletContext.getContextPath() + res));
 				}
 			}
 			else {
 				for (String res : linksAndScripts.get(var)) {
-					sb.append(String.format(CSSLINK_TAG, servletContext.getContextPath()
-							+ res));
+					sb.append(String.format(CSSLINK_TAG,
+							this.servletContext.getContextPath() + res));
 				}
 			}
-			servletContext.setAttribute(var, sb.toString());
+			this.servletContext.setAttribute(var, sb.toString());
 		}
 
 	}
@@ -248,7 +248,7 @@ public class WebResourceProcessor {
 						}
 						else {
 							minifiedSource.append(compressCss(changeImageUrls(
-									servletContext.getContextPath(), sourcecode,
+									this.servletContext.getContextPath(), sourcecode,
 									resource.getPath())));
 						}
 					}
@@ -275,9 +275,9 @@ public class WebResourceProcessor {
 					String servletPath = constructServletPath(jsFileName);
 
 					if (addServlet) {
-						servletContext.addServlet(
+						this.servletContext.addServlet(
 								jsFileName,
-								new ResourceServlet(content, crc, cacheInSeconds,
+								new ResourceServlet(content, crc, this.cacheInSeconds,
 										"application/javascript"))
 								.addMapping(servletPath);
 					}
@@ -292,9 +292,9 @@ public class WebResourceProcessor {
 					String servletPath = constructServletPath(cssFileName);
 
 					if (addServlet) {
-						servletContext.addServlet(
+						this.servletContext.addServlet(
 								cssFileName,
-								new ResourceServlet(content, crc, cacheInSeconds,
+								new ResourceServlet(content, crc, this.cacheInSeconds,
 										"text/css")).addMapping(servletPath);
 					}
 
@@ -313,7 +313,7 @@ public class WebResourceProcessor {
 
 	private Map<String, List<WebResource>> readVariableResources() throws IOException {
 
-		try (InputStream is = new ClassPathResource(webResourcesConfigName)
+		try (InputStream is = new ClassPathResource(this.webResourcesConfigName)
 				.getInputStream()) {
 			Constructor constructor = new Constructor(VariableConfig.class);
 			Yaml yaml = new Yaml(constructor);
@@ -332,11 +332,11 @@ public class WebResourceProcessor {
 		for (WebResourceConfig config : variableConfig.resources) {
 			String path = replaceVariables(config.path);
 
-			if (!production && config.isDevScriptOrLink()) {
+			if (!this.production && config.isDevScriptOrLink()) {
 				DescriptiveResource resource = new DescriptiveResource(path);
 				webResources.add(new WebResource(varName, path, resource, false));
 			}
-			else if (production && config.isProd()) {
+			else if (this.production && config.isProd()) {
 				if (config.isProdScriptOrLink()) {
 					DescriptiveResource resource = new DescriptiveResource(path);
 					webResources.add(new WebResource(varName, path, resource, false));
@@ -381,11 +381,11 @@ public class WebResourceProcessor {
 	}
 
 	private String constructServletPath(String path) {
-		if (StringUtils.hasText(resourceServletPath)) {
-			if (!resourceServletPath.endsWith("/")) {
-				return resourceServletPath + "/" + path;
+		if (StringUtils.hasText(this.resourceServletPath)) {
+			if (!this.resourceServletPath.endsWith("/")) {
+				return this.resourceServletPath + "/" + path;
 			}
-			return resourceServletPath + path;
+			return this.resourceServletPath + path;
 		}
 
 		return "/" + path;
@@ -412,15 +412,15 @@ public class WebResourceProcessor {
 			final String suffix) throws IOException {
 		if (line.endsWith("/")) {
 			ServletContextResourcePatternResolver resourceResolver = new ServletContextResourcePatternResolver(
-					servletContext);
+					this.servletContext);
 			String location = line + "**/*" + suffix;
 			Resource[] resources = resourceResolver.getResources(location);
 			return Arrays.asList(resources);
 		}
 
 		if (line.endsWith(suffix)) {
-			return Collections.singletonList(new ServletContextResource(servletContext,
-					line));
+			return Collections.singletonList(new ServletContextResource(
+					this.servletContext, line));
 		}
 
 		return Collections.emptyList();
@@ -458,7 +458,7 @@ public class WebResourceProcessor {
 
 		for (Resource resource : resources) {
 
-			if (ignoreJsResourceFromReordering.contains(resource)) {
+			if (this.ignoreJsResourceFromReordering.contains(resource)) {
 				continue;
 			}
 
@@ -528,7 +528,7 @@ public class WebResourceProcessor {
 
 		try {
 			List<Node> resolved = g.resolveDependencies();
-			for (Resource ignoredRes : ignoreJsResourceFromReordering) {
+			for (Resource ignoredRes : this.ignoreJsResourceFromReordering) {
 				resolved.add(0, new Node(ignoredRes));
 			}
 
@@ -622,10 +622,11 @@ public class WebResourceProcessor {
 	private String minifyJs(final String jsSourceCode) throws EvaluatorException,
 			IOException {
 		JavaScriptCompressor jsc = new JavaScriptCompressor(
-				new StringReader(jsSourceCode), errorReporter);
+				new StringReader(jsSourceCode), this.errorReporter);
 		StringWriter sw = new StringWriter();
-		jsc.compress(sw, jsLinebreakPos, jsCompressorMunge, jsCompressorVerbose,
-				jsCompressorPreserveAllSemiColons, jsCompressordisableOptimizations);
+		jsc.compress(sw, this.jsLinebreakPos, this.jsCompressorMunge,
+				this.jsCompressorVerbose, this.jsCompressorPreserveAllSemiColons,
+				this.jsCompressordisableOptimizations);
 		return sw.toString();
 
 	}
@@ -633,13 +634,13 @@ public class WebResourceProcessor {
 	private String compressCss(final String css) throws EvaluatorException, IOException {
 		CssCompressor cc = new CssCompressor(new StringReader(css));
 		StringWriter sw = new StringWriter();
-		cc.compress(sw, cssLinebreakPos);
+		cc.compress(sw, this.cssLinebreakPos);
 		return sw.toString();
 	}
 
 	private String replaceVariables(String inputLine) {
 		String processedLine = inputLine;
-		for (Entry<String, String> entry : versionNumbers.entrySet()) {
+		for (Entry<String, String> entry : this.versionNumbers.entrySet()) {
 			String var = "{" + entry.getKey() + "}";
 			processedLine = processedLine.replace(var, entry.getValue());
 		}
@@ -648,16 +649,16 @@ public class WebResourceProcessor {
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private Map<String, String> readVersionNumber() {
-		if (versionPropertiesName != null) {
-			try (InputStream is = new ClassPathResource(versionPropertiesName)
+		if (this.versionPropertiesName != null) {
+			try (InputStream is = new ClassPathResource(this.versionPropertiesName)
 					.getInputStream()) {
 				Properties properties = new Properties();
 				properties.load(is);
 				return (Map) properties;
 			}
 			catch (IOException ioe) {
-				log.error("read variables from property '" + versionPropertiesName + "'",
-						ioe);
+				log.error("read variables from property '" + this.versionPropertiesName
+						+ "'", ioe);
 			}
 		}
 		return Collections.emptyMap();

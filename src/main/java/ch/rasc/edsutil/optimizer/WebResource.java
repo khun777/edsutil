@@ -35,29 +35,29 @@ public class WebResource {
 	}
 
 	public String getVarName() {
-		return varName;
+		return this.varName;
 	}
 
 	public Resource getResource() {
-		return resource;
+		return this.resource;
 	}
 
 	public String getPath() {
-		return path;
+		return this.path;
 	}
 
 	public boolean isMinify() {
-		return minify;
+		return this.minify;
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + (minify ? 1231 : 1237);
+		result = prime * result + (this.minify ? 1231 : 1237);
 		result = prime * result
-				+ (resource == null ? 0 : resource.getDescription().hashCode());
-		result = prime * result + (varName == null ? 0 : varName.hashCode());
+				+ (this.resource == null ? 0 : this.resource.getDescription().hashCode());
+		result = prime * result + (this.varName == null ? 0 : this.varName.hashCode());
 		return result;
 	}
 
@@ -73,23 +73,23 @@ public class WebResource {
 			return false;
 		}
 		WebResource other = (WebResource) obj;
-		if (minify != other.minify) {
+		if (this.minify != other.minify) {
 			return false;
 		}
-		if (resource == null) {
+		if (this.resource == null) {
 			if (other.resource != null) {
 				return false;
 			}
 		}
-		else if (!resource.getDescription().equals(other.resource.getDescription())) {
+		else if (!this.resource.getDescription().equals(other.resource.getDescription())) {
 			return false;
 		}
-		if (varName == null) {
+		if (this.varName == null) {
 			if (other.varName != null) {
 				return false;
 			}
 		}
-		else if (!varName.equals(other.varName)) {
+		else if (!this.varName.equals(other.varName)) {
 			return false;
 		}
 		return true;

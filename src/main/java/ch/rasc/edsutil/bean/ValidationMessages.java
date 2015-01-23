@@ -21,7 +21,7 @@ public class ValidationMessages {
 	private String[] messages;
 
 	public String getField() {
-		return field;
+		return this.field;
 	}
 
 	public void setField(String field) {
@@ -29,7 +29,7 @@ public class ValidationMessages {
 	}
 
 	public String[] getMessages() {
-		return messages;
+		return this.messages;
 	}
 
 	public void setMessages(String[] messages) {

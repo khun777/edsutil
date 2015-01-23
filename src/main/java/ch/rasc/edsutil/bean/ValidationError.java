@@ -21,7 +21,7 @@ public class ValidationError {
 	private String message;
 
 	public String getField() {
-		return field;
+		return this.field;
 	}
 
 	public void setField(String field) {
@@ -29,7 +29,7 @@ public class ValidationError {
 	}
 
 	public String getMessage() {
-		return message;
+		return this.message;
 	}
 
 	public void setMessage(String message) {

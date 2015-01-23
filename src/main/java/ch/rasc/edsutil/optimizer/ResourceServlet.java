@@ -60,22 +60,22 @@ public class ResourceServlet extends HttpServlet {
 			HttpServletResponse response) throws IOException {
 		String ifNoneMatch = request.getHeader("If-None-Match");
 
-		if (etag.equals(ifNoneMatch)) {
+		if (this.etag.equals(ifNoneMatch)) {
 			response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
 			return;
 		}
 
-		response.setContentType(contentType);
-		response.setContentLength(data.length);
+		response.setContentType(this.contentType);
+		response.setContentLength(this.data.length);
 
-		response.setDateHeader("Expires", System.currentTimeMillis() + cacheInSeconds
-				* 1000L);
-		response.setHeader("ETag", etag);
-		response.setHeader("Cache-Control", "public, max-age=" + cacheInSeconds);
+		response.setDateHeader("Expires", System.currentTimeMillis()
+				+ this.cacheInSeconds * 1000L);
+		response.setHeader("ETag", this.etag);
+		response.setHeader("Cache-Control", "public, max-age=" + this.cacheInSeconds);
 
 		@SuppressWarnings("resource")
 		ServletOutputStream out = response.getOutputStream();
-		out.write(data);
+		out.write(this.data);
 		out.flush();
 	}
 }

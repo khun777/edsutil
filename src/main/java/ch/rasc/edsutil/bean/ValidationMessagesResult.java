@@ -36,7 +36,7 @@ public class ValidationMessagesResult<T> extends ExtDirectStoreResult<T> {
 	}
 
 	public List<ValidationMessages> getValidations() {
-		return validations;
+		return this.validations;
 	}
 
 	public void setValidations(List<ValidationMessages> validations) {

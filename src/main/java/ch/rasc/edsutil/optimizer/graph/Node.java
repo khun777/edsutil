@@ -32,24 +32,24 @@ public class Node {
 	}
 
 	public void addEdge(Node edge) {
-		edges.add(edge);
+		this.edges.add(edge);
 	}
 
 	public void removeEdge(Node edge) {
-		edges.remove(edge);
+		this.edges.remove(edge);
 	}
 
 	public Resource getResource() {
-		return resource;
+		return this.resource;
 	}
 
 	public Set<Node> getEdges() {
-		return Collections.unmodifiableSet(edges);
+		return Collections.unmodifiableSet(this.edges);
 	}
 
 	@Override
 	public String toString() {
-		return "Node [" + resource.getDescription() + "]";
+		return "Node [" + this.resource.getDescription() + "]";
 	}
 
 	@Override
@@ -58,7 +58,7 @@ public class Node {
 		int result = 1;
 
 		result = prime * result
-				+ (resource == null ? 0 : resource.getDescription().hashCode());
+				+ (this.resource == null ? 0 : this.resource.getDescription().hashCode());
 
 		return result;
 	}
@@ -75,12 +75,12 @@ public class Node {
 			return false;
 		}
 		Node other = (Node) obj;
-		if (resource == null) {
+		if (this.resource == null) {
 			if (other.resource != null) {
 				return false;
 			}
 		}
-		else if (!resource.getDescription().equals(other.resource.getDescription())) {
+		else if (!this.resource.getDescription().equals(other.resource.getDescription())) {
 			return false;
 		}
 

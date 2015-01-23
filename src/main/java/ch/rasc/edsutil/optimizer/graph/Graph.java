@@ -30,10 +30,10 @@ public class Graph {
 	private final Map<String, Node> nodesDb = new HashMap<>();
 
 	public Node createNode(Resource resource) {
-		Node newNode = nodesDb.get(resource.getDescription());
+		Node newNode = this.nodesDb.get(resource.getDescription());
 		if (newNode == null) {
 			newNode = new Node(resource);
-			nodesDb.put(resource.getDescription(), newNode);
+			this.nodesDb.put(resource.getDescription(), newNode);
 		}
 		return newNode;
 	}
@@ -42,7 +42,7 @@ public class Graph {
 			IOException {
 		List<Node> resolved = new ArrayList<>();
 		Set<Node> unresolved = new HashSet<>();
-		for (Node node : nodesDb.values()) {
+		for (Node node : this.nodesDb.values()) {
 			if (!resolved.contains(node)) {
 				depResolve(node, resolved, unresolved);
 			}

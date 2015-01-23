@@ -71,7 +71,7 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 	@Transactional(readOnly = true)
 	public ExtDirectStoreResult<T> read(ExtDirectStoreReadRequest request) {
 		PathBuilder<T> pathBuilder = createPathBuilder();
-		JPQLQuery query = new JPAQuery(entityManager).from(pathBuilder);
+		JPQLQuery query = new JPAQuery(this.entityManager).from(pathBuilder);
 		addPagingAndSorting(request, query, pathBuilder);
 
 		if (!request.getFilters().isEmpty()) {
@@ -94,7 +94,7 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 				else if (filter instanceof StringFilter && filter.getField().equals("id")) {
 					String value = ((StringFilter) filter).getValue();
 					try {
-						List<Long> ids = objectMapper.readValue(value,
+						List<Long> ids = this.objectMapper.readValue(value,
 								new TypeReference<List<Long>>() {
 									// nothing here
 								});
@@ -117,8 +117,8 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 	@ExtDirectMethod(STORE_MODIFY)
 	@Transactional
 	public ExtDirectStoreResult<T> destroy(Long id) {
-		T dbEntity = entityManager.find(getTypeClass(), id);
-		entityManager.remove(dbEntity);
+		T dbEntity = this.entityManager.find(getTypeClass(), id);
+		this.entityManager.remove(dbEntity);
 
 		ExtDirectStoreResult<T> result = new ExtDirectStoreResult<>();
 		result.setSuccess(Boolean.TRUE);
@@ -132,7 +132,7 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 
 		List<ValidationError> violations = validateEntity(newEntity);
 		if (violations.isEmpty()) {
-			entityManager.persist(newEntity);
+			this.entityManager.persist(newEntity);
 			return new ExtDirectStoreValidationResult<>(newEntity);
 		}
 
@@ -151,7 +151,7 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 		List<ValidationError> violations = validateEntity(updatedEntity);
 		if (violations.isEmpty()) {
 			return new ExtDirectStoreValidationResult<>(
-					entityManager.merge(updatedEntity));
+					this.entityManager.merge(updatedEntity));
 		}
 
 		ExtDirectStoreValidationResult<T> result = new ExtDirectStoreValidationResult<>(
@@ -161,7 +161,8 @@ public abstract class BaseCRUDService<T extends AbstractPersistable> {
 	}
 
 	protected List<ValidationError> validateEntity(T entity) {
-		Set<ConstraintViolation<T>> constraintViolations = validator.validate(entity);
+		Set<ConstraintViolation<T>> constraintViolations = this.validator
+				.validate(entity);
 		List<ValidationError> validationErrors = new ArrayList<>();
 		if (!constraintViolations.isEmpty()) {
 			for (ConstraintViolation<T> constraintViolation : constraintViolations) {

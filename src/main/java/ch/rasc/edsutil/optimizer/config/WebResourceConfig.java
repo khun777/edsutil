@@ -27,16 +27,16 @@ public class WebResourceConfig {
 	public String classpath;
 
 	public boolean isDevScriptOrLink() {
-		return dev != null
-				&& (dev == WebResourceType.link || dev == WebResourceType.script);
+		return this.dev != null
+				&& (this.dev == WebResourceType.link || this.dev == WebResourceType.script);
 	}
 
 	public boolean isProd() {
-		return prod != null && prod != WebResourceType.ignore;
+		return this.prod != null && this.prod != WebResourceType.ignore;
 	}
 
 	public boolean isProdScriptOrLink() {
-		return prod != null
-				&& (prod == WebResourceType.script || prod == WebResourceType.link);
+		return this.prod != null
+				&& (this.prod == WebResourceType.script || this.prod == WebResourceType.link);
 	}
 }
